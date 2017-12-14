@@ -1,39 +1,11 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 FN = 'trn'
 
-
-# In[2]:
-
-
 import os
-
-
-# In[3]:
-
-
 import keras
 keras.__version__
 
-
-# In[4]:
-
-
 FN0 = 'vocab'
-
-
-# In[5]:
-
-
 FN1 = 'trn'
-
-
-# In[6]:
-
 
 maxlend=25 # 0 - if we dont want to use description at all
 maxlenh=25
@@ -42,15 +14,7 @@ rnn_size = 512 # must be same as 160330-word-gen
 rnn_layers = 3  # match FN1
 batch_norm=False
 
-
-# In[7]:
-
-
 activation_rrn_size = 40 if maxlend else 0
-
-
-# In[8]:
-
 
 # training parameters
 seed=42
@@ -63,18 +27,10 @@ batch_size=16
 
 nflips=10
 
-
-# In[9]:
-
-
 # nb_train_samples = 30000
 nb_train_samples = 10000
 # nb_val_samples = 3000
 nb_val_samples = 1000
-
-
-# In[10]:
-
 
 import pickle
 with open('data/%s.pkl'%FN0, 'rb') as fp:
@@ -82,27 +38,13 @@ with open('data/%s.pkl'%FN0, 'rb') as fp:
 vocab_size, embedding_size = embedding.shape
 
 
-# In[11]:
-
-
 with open('data/%s.data.pkl'%FN0, 'rb') as fp:
     X, Y = pickle.load(fp)
-
-
-# In[12]:
-
 
 nb_unknown_words = 10
 
 
-# In[13]:
-
-
 X = X[:len(Y)]
-
-
-# In[14]:
-
 
 print('number of examples',len(X),len(Y))
 print('dimension of embedding space for words',embedding_size)
@@ -111,62 +53,30 @@ print('total number of different words',len(idx2word), len(word2idx))
 print('number of words outside vocabulary which we can substitue using glove similarity', len(glove_idx2idx))
 print('number of words that will be regarded as unknonw(unk)/out-of-vocabulary(oov)',len(idx2word)-vocab_size-len(glove_idx2idx))
 
-
-# In[15]:
-
-
 for i in range(nb_unknown_words):
     idx2word[vocab_size - 1 - i] = '<%d>'%i
 
-
-# In[16]:
-
-
 oov0 = vocab_size - nb_unknown_words
-
-
-# In[17]:
-
 
 for i in range(oov0, len(idx2word)):
     idx2word[i] = idx2word[i]+'^'
-
-
-# In[18]:
-
 
 from sklearn.cross_validation import train_test_split
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=nb_val_samples, random_state=seed)
 len(X_train), len(Y_train), len(X_test), len(Y_test)
 
-
-# In[19]:
-
-
 del X
 del Y
-
-
-# In[20]:
-
 
 empty = 0
 eos = 1
 idx2word[empty] = '_'
 idx2word[eos] = '~'
 
-
-# In[21]:
-
-
 import numpy as np
 from keras.preprocessing import sequence
 from keras.utils import np_utils
 import random, sys
-
-
-# In[22]:
-
 
 def prt(label, x):
     print(label+':', end='')
@@ -174,25 +84,13 @@ def prt(label, x):
         print(idx2word[w], end=' ')
     print()
 
-
-# In[23]:
-
-
 i = 334
 prt('H',Y_train[i])
 prt('D',X_train[i])
 
-
-# In[24]:
-
-
 i = 334
 prt('H',Y_test[i])
 prt('D',X_test[i])
-
-
-# In[25]:
-
 
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout, RepeatVector
@@ -206,22 +104,11 @@ from keras_tqdm import TQDMCallback, TQDMNotebookCallback
 tbCallback = keras.callbacks.TensorBoard(log_dir='./logs', histogram_freq=0, write_graph=True, write_images=True)
 saveModelCallback = keras.callbacks.ModelCheckpoint('./checkpoints/Iweights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5', monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=False, mode='auto', period=20)
 
-
-# In[26]:
-
-
 # seed weight initialization
 random.seed(seed)
 np.random.seed(seed)
 
-
-# In[27]:
-
-
 regularizer = l2(weight_decay) if weight_decay else None
-
-
-# In[ ]:
 
 import time
 
@@ -243,10 +130,6 @@ for i in range(rnn_layers):
     model.add(Dropout(p_dense,name='dropout_%d'%(i+1)))
     print('*#'*30)
     print('layer ' + str(i) + 'done in : ' + str(time.time()-start))
-
-
-# In[ ]:
-
 
 from keras.layers.core import Lambda
 import keras.backend as K
@@ -286,10 +169,6 @@ class SimpleContext(Lambda):
         n = 2*(rnn_size - activation_rnn_size)
         return (nb_samples, maxlenh, n)
 
-
-# In[ ]:
-
-
 activation_rnn_size = 40
 model.add(Lambda(simple_context,
                  mask=lambda inputs, mask: mask[:, maxlend:],
@@ -300,29 +179,13 @@ model.add(TimeDistributed(Dense(vocab_size,
                                 name = 'timedistributed_1')))
 model.add(Activation('softmax', name='activation_1'))
 
-
-# In[31]:
-
-
 from keras.optimizers import Adam, RMSprop # usually I prefer Adam but article used rmsprop
 # opt = Adam(lr=LR)  # keep calm and reduce learning rate
 model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 
-
-# In[32]:
-
-
 K.set_value(model.optimizer.lr,np.float32(LR))
 
-
-# In[33]:
-
-
 model.summary()
-
-
-# In[34]:
-
 
 def str_shape(x):
     return 'x'.join(map(str,x.shape))
@@ -335,22 +198,10 @@ def inspect_model(model):
             print(str_shape(weight),end=' ')
         print()
 
-
-# In[35]:
-
-
 inspect_model(model)
-
-
-# In[36]:
-
 
 if FN1 and os.path.exists('data/%s.hdf5'%FN1):
     model.load_weights('data/%s.hdf5'%FN1)
-
-
-# In[37]:
-
 
 def lpadd(x, maxlend=maxlend, eos=eos):
     """left (pre) pad a description to maxlend and then add eos.
@@ -365,36 +216,16 @@ def lpadd(x, maxlend=maxlend, eos=eos):
         n = maxlend
     return [empty]*(maxlend-n) + x + [eos]
 
-
-# In[38]:
-
-
 samples = [lpadd([3]*26)]
 # pad from right (post) so the first maxlend will be description followed by headline
 data = sequence.pad_sequences(samples, maxlen=maxlen, value=empty, padding='post', truncating='post')
 
-
-# In[39]:
-
-
 np.all(data[:,maxlend] == eos)
-
-
-# In[40]:
-
 
 data.shape, map(len, samples)
 
-
-# In[41]:
-
-
 probs = model.predict(data, verbose=0, batch_size=1)
 probs.shape
-
-
-# In[42]:
-
 
 # variation to https://github.com/ryankiros/skip-thoughts/blob/master/decoding/search.py
 def beamsearch(predict, start=[empty]*maxlend + [eos],
@@ -472,10 +303,6 @@ def beamsearch(predict, start=[empty]*maxlend + [eos],
 
     return dead_samples + live_samples, dead_scores + live_scores
 
-
-# In[43]:
-
-
 def keras_rnn_predict(samples, empty=empty, model=model, maxlen=maxlen):
     """for every sample, calculate probability for every possible label
     you need to supply your RNN model and maxlen - the length of sequences it can handle
@@ -490,10 +317,6 @@ def keras_rnn_predict(samples, empty=empty, model=model, maxlen=maxlen):
     print(res.shape)
     return res
 
-
-# In[44]:
-
-
 def vocab_fold(xs):
     """convert list of word indexes that may contain words outside vocab_size to words inside.
     If a word is outside, try first to use glove_idx2idx to find a similar word inside.
@@ -507,10 +330,6 @@ def vocab_fold(xs):
     xs = [outside.get(x,x) for x in xs]
     return xs
 
-
-# In[45]:
-
-
 def vocab_unfold(desc,xs):
     # assume desc is the unfolded version of the start of xs
     unfold = {}
@@ -519,10 +338,6 @@ def vocab_unfold(desc,xs):
         if fold_idx >= oov0:
             unfold[fold_idx] = unfold_idx
     return [unfold.get(x,x) for x in xs]
-
-
-# In[46]:
-
 
 import sys
 import Levenshtein
@@ -567,15 +382,7 @@ def gensamples(skips=2, k=10, batch_size=batch_size, short=True, temperature=1.,
                 print(score, ' '.join(words))
         codes.append(code)
 
-
-# In[47]:
-
-
-# gensamples()
-
-
-# In[48]:
-
+gensamples()
 
 def flip_headline(x, nflips=None, model=None, debug=False):
     """given a vectorized input (after `pad_sequences`) flip some of the words in the second half (headline)
@@ -612,10 +419,6 @@ def flip_headline(x, nflips=None, model=None, debug=False):
             print()
     return x_out
 
-
-# In[49]:
-
-
 def conv_seq_labels(xds, xhs, nflips=None, model=None, debug=False):
     """description and hedlines are converted to padded input vectors. headlines are one-hot to label"""
     batch_size = len(xhs)
@@ -631,10 +434,6 @@ def conv_seq_labels(xds, xhs, nflips=None, model=None, debug=False):
         y[i,:,:] = np_utils.to_categorical(xh, vocab_size)
 
     return x, y
-
-
-# In[50]:
-
 
 def gen(Xd, Xh, batch_size=batch_size, nb_batches=None, nflips=None, model=None, debug=False, seed=seed):
     """yield batches. for training use nb_batches=None
@@ -669,15 +468,8 @@ def gen(Xd, Xh, batch_size=batch_size, nb_batches=None, nflips=None, model=None,
         yield conv_seq_labels(xds, xhs, nflips=nflips, model=model, debug=debug)
 
 
-# In[51]:
-
-
 r = next(gen(X_train, Y_train, batch_size=batch_size))
 r[0].shape, r[1].shape, len(r)
-
-
-# In[52]:
-
 
 def test_gen(gen, n=5):
     Xtr,Ytr = next(gen)
@@ -692,64 +484,27 @@ def test_gen(gen, n=5):
         if maxlend:
             prt('D',x)
 
-
-# In[53]:
-
-
 test_gen(gen(X_train, Y_train, batch_size=batch_size))
-
-
-# In[54]:
-
 
 test_gen(gen(X_train, Y_train, nflips=6, model=model, debug=False, batch_size=batch_size))
 
-
-# In[55]:
-
-
 valgen = gen(X_test, Y_test,nb_batches=3, batch_size=batch_size)
-
-
-# In[56]:
 
 
 for i in range(4):
     test_gen(valgen, n=1)
 
-
-# In[57]:
-
-
 history = {}
-
-
-# In[58]:
-
 
 traingen = gen(X_train, Y_train, batch_size=batch_size, nflips=nflips, model=model)
 valgen = gen(X_test, Y_test, nb_batches=nb_val_samples//batch_size, batch_size=batch_size)
-
-
-# In[59]:
-
 
 r = next(traingen)
 r[0].shape, r[1].shape, len(r)
 
 
-# In[62]:
-
-
 for iteration in range(1):
     print('Iteration', iteration)
-    # h = model.fit_generator(traingen,
-    #                         samples_per_epoch=nb_train_samples,
-    #                         nb_epoch=1,
-    #                         validation_data=valgen,
-    #                         nb_val_samples=nb_val_samples,
-    #                         callbacks=[tbCallback, saveModelCallback]
-    #                        )
     h = model.fit_generator(traingen,
                             steps_per_epoch=50,
                             epochs=1000,
